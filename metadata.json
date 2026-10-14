@@ -1,0 +1,6 @@
+{
+  "name": "Finance - Gestão Financeira Pessoal",
+  "description": "Sistema pessoal de controle financeiro moderno, limpo e profissional.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

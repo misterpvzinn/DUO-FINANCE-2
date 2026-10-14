@@ -1,0 +1,248 @@
+{
+  "entities": {
+    "Plano": {
+      "title": "Plano",
+      "description": "Plano financeiro compartilhado para duas pessoas",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "description": "Nome do plano familiar/casal" },
+        "memberIds": {
+          "type": "array",
+          "description": "Lista de UIDs dos membros autorizados no plano"
+        },
+        "membros": {
+          "type": "object",
+          "description": "Mapa de UID para papel, nomeExibicao e rendaMensalCentavos"
+        },
+        "criadoEm": { "type": "string", "format": "date-time" },
+        "criadorUid": { "type": "string" }
+      },
+      "required": ["nome", "memberIds", "membros", "criadorUid"]
+    },
+    "Conta": {
+      "title": "Conta",
+      "description": "Conta bancária ou carteira do plano",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "tipo": { "type": "string" },
+        "saldoInicialCentavos": { "type": "integer" },
+        "donoId": { "type": "string", "description": "UID do dono ou vazio para compartilhado" }
+      },
+      "required": ["nome", "tipo", "saldoInicialCentavos"]
+    },
+    "Cartao": {
+      "title": "Cartao",
+      "description": "Cartão de crédito do plano",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "bandeira": { "type": "string" },
+        "ultimos4": { "type": "string" },
+        "limiteCentavos": { "type": "integer" },
+        "diaFechamento": { "type": "integer" },
+        "diaVencimento": { "type": "integer" },
+        "donoId": { "type": "string", "description": "UID do dono ou vazio para compartilhado" },
+        "ativo": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nome", "limiteCentavos", "diaFechamento", "diaVencimento", "ativo"]
+    },
+    "Fatura": {
+      "title": "Fatura",
+      "description": "Fatura mensal de cartão de crédito",
+      "type": "object",
+      "properties": {
+        "cartaoId": { "type": "string" },
+        "mesReferencia": { "type": "string" },
+        "dataFechamento": { "type": "string", "format": "date" },
+        "dataVencimento": { "type": "string", "format": "date" },
+        "valorTotalCentavos": { "type": "integer" },
+        "valorPagoCentavos": { "type": "integer" },
+        "status": { "type": "string", "enum": ["aberta", "fechada", "paga", "vencida"] },
+        "contaPagamentoId": { "type": "string" },
+        "pagamentoLancamentoId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cartaoId", "mesReferencia", "valorTotalCentavos", "valorPagoCentavos", "status"]
+    },
+    "CompraCartao": {
+      "title": "CompraCartao",
+      "description": "Compra realizada no cartão de crédito",
+      "type": "object",
+      "properties": {
+        "cartaoId": { "type": "string" },
+        "descricao": { "type": "string" },
+        "valorTotalCentavos": { "type": "integer" },
+        "numeroParcelas": { "type": "integer" },
+        "categoriaId": { "type": "string" },
+        "donoId": { "type": "string" },
+        "dataCompra": { "type": "string", "format": "date" },
+        "observacao": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cartaoId", "descricao", "valorTotalCentavos", "numeroParcelas", "categoriaId", "dataCompra"]
+    },
+    "ParcelaCartao": {
+      "title": "ParcelaCartao",
+      "description": "Parcela de compra vinculada à fatura",
+      "type": "object",
+      "properties": {
+        "compraId": { "type": "string" },
+        "cartaoId": { "type": "string" },
+        "numeroParcela": { "type": "integer" },
+        "totalParcelas": { "type": "integer" },
+        "valorCentavos": { "type": "integer" },
+        "faturaId": { "type": "string" },
+        "dataCompetencia": { "type": "string", "format": "date" },
+        "dataCaixa": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["aberta", "paga", "cancelada"] },
+        "lancamentoId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["compraId", "cartaoId", "numeroParcela", "totalParcelas", "valorCentavos", "faturaId", "status", "lancamentoId"]
+    },
+    "Categoria": {
+      "title": "Categoria",
+      "description": "Categoria de classificação no plano de contas hierárquico",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "tipo": {
+          "type": "string",
+          "enum": ["receita", "custo_fixo", "custo_variavel", "investimento", "lazer", "divida"]
+        },
+        "cor": { "type": "string" },
+        "icone": { "type": "string" },
+        "categoriaPaiId": { "type": "string" }
+      },
+      "required": ["nome", "tipo"]
+    },
+    "Lancamento": {
+      "title": "Lancamento",
+      "description": "Lançamento financeiro por competência e caixa",
+      "type": "object",
+      "properties": {
+        "descricao": { "type": "string" },
+        "valorCentavos": { "type": "integer" },
+        "dataCompetencia": { "type": "string", "format": "date-time" },
+        "dataCaixa": { "type": "string", "format": "date-time" },
+        "tipo": { "type": "string", "enum": ["receita", "despesa", "transferencia"] },
+        "categoriaId": { "type": "string" },
+        "contaId": { "type": "string" },
+        "contaDestinoId": { "type": "string" },
+        "donoId": { "type": "string", "description": "UID do dono ou vazio para compartilhado" },
+        "observacao": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["descricao", "valorCentavos", "dataCompetencia", "dataCaixa", "tipo", "contaId", "donoId"]
+    },
+    "Recorrencia": {
+      "title": "Recorrencia",
+      "description": "Lançamento recorrente mensal ou periódico",
+      "type": "object",
+      "properties": {
+        "descricao": { "type": "string" },
+        "valorCentavos": { "type": "integer" },
+        "diaVencimento": { "type": "integer" },
+        "tipo": { "type": "string" },
+        "donoId": { "type": "string" }
+      },
+      "required": ["descricao", "valorCentavos", "diaVencimento"]
+    },
+    "Orcamento": {
+      "title": "Orcamento",
+      "description": "Teto orçamentário mensal por categoria ou geral",
+      "type": "object",
+      "properties": {
+        "categoriaId": { "type": "string" },
+        "mes": { "type": "string" },
+        "limiteCentavos": { "type": "integer" }
+      },
+      "required": ["categoriaId", "mes", "limiteCentavos"]
+    },
+    "Meta": {
+      "title": "Meta",
+      "description": "Objetivo financeiro do casal",
+      "type": "object",
+      "properties": {
+        "titulo": { "type": "string" },
+        "valorAlvoCentavos": { "type": "integer" },
+        "valorAtualCentavos": { "type": "integer" },
+        "prazo": { "type": "string", "format": "date" },
+        "donoId": { "type": "string" }
+      },
+      "required": ["titulo", "valorAlvoCentavos", "valorAtualCentavos"]
+    },
+    "Convite": {
+      "title": "Convite",
+      "description": "Convite enviado para o segundo membro por e-mail",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "planoId": { "type": "string" },
+        "planoNome": { "type": "string" },
+        "criadorUid": { "type": "string" },
+        "criadorNome": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendente", "aceito", "recusado"] },
+        "criadoEm": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "planoId", "status", "criadorUid"]
+    }
+  },
+  "firestore": {
+    "/planos/{planoId}": {
+      "schema": { "$ref": "#/entities/Plano" },
+      "description": "Documentos dos planos financeiros"
+    },
+    "/planos/{planoId}/contas/{contaId}": {
+      "schema": { "$ref": "#/entities/Conta" },
+      "description": "Contas financeiras do plano"
+    },
+    "/planos/{planoId}/cartoes/{cartaoId}": {
+      "schema": { "$ref": "#/entities/Cartao" },
+      "description": "Cartões de crédito do plano"
+    },
+    "/planos/{planoId}/cartoes/{cartaoId}/faturas/{faturaId}": {
+      "schema": { "$ref": "#/entities/Fatura" },
+      "description": "Faturas mensais do cartão de crédito"
+    },
+    "/planos/{planoId}/cartoes/{cartaoId}/compras/{compraId}": {
+      "schema": { "$ref": "#/entities/CompraCartao" },
+      "description": "Compras realizadas no cartão de crédito"
+    },
+    "/planos/{planoId}/cartoes/{cartaoId}/compras/{compraId}/parcelas/{parcelaId}": {
+      "schema": { "$ref": "#/entities/ParcelaCartao" },
+      "description": "Parcelas de compras vinculadas à fatura"
+    },
+    "/planos/{planoId}/categorias/{categoriaId}": {
+      "schema": { "$ref": "#/entities/Categoria" },
+      "description": "Categorias do plano de contas"
+    },
+    "/planos/{planoId}/lancamentos/{lancamentoId}": {
+      "schema": { "$ref": "#/entities/Lancamento" },
+      "description": "Lançamentos e despesas do plano"
+    },
+    "/planos/{planoId}/recorrencias/{recorrenciaId}": {
+      "schema": { "$ref": "#/entities/Recorrencia" },
+      "description": "Lançamentos recorrentes"
+    },
+    "/planos/{planoId}/orcamentos/{orcamentoId}": {
+      "schema": { "$ref": "#/entities/Orcamento" },
+      "description": "Metas orçamentárias mensais"
+    },
+    "/planos/{planoId}/metas/{metaId}": {
+      "schema": { "$ref": "#/entities/Meta" },
+      "description": "Metas e objetivos financeiros"
+    },
+    "/convites/{conviteId}": {
+      "schema": { "$ref": "#/entities/Convite" },
+      "description": "Convites de participação em planos por e-mail"
+    }
+  }
+}

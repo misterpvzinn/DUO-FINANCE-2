@@ -1,0 +1,192 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getPlan(planoId) {
+      return get(/databases/$(database)/documents/planos/$(planoId));
+    }
+
+    function isPlanMember(planoId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/planos/$(planoId)) &&
+        request.auth.uid in getPlan(planoId).data.memberIds;
+    }
+
+    function isPositiveInteger(val) {
+      return val is int && val > 0;
+    }
+
+    function isNonNegativeInteger(val) {
+      return val is int && val >= 0;
+    }
+
+    function isValidDonoId(planoId, donoId) {
+      return donoId == '' || (donoId is string && donoId in getPlan(planoId).data.memberIds);
+    }
+
+    function isValidLancamento(planoId, data) {
+      return isPositiveInteger(data.valorCentavos) &&
+        data.descricao is string && data.descricao.size() > 0 &&
+        data.tipo in ['receita', 'despesa', 'transferencia'] &&
+        isValidDonoId(planoId, data.donoId) &&
+        // contaId obrigatório para transações de conta, ou cartaoId preenchido para despesa de cartão
+        ((data.contaId is string && data.contaId.size() > 0) || (data.cartaoId is string && data.cartaoId.size() > 0)) &&
+        data.dataCompetencia is timestamp &&
+        data.dataCaixa is timestamp &&
+        // Se for transferência: contaDestinoId obrigatória e diferente da contaId
+        (data.tipo != 'transferencia' || (
+          data.contaDestinoId is string && 
+          data.contaDestinoId.size() > 0 && 
+          data.contaDestinoId != data.contaId
+        )) &&
+        // Se for receita ou despesa: categoriaId obrigatória
+        (data.tipo == 'transferencia' || (
+          data.categoriaId is string && 
+          data.categoriaId.size() > 0
+        ));
+    }
+
+    // Regras para Planos
+    match /planos/{planoId} {
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.memberIds);
+      
+      allow create: if isAuthenticated() && 
+        request.auth.uid in request.resource.data.memberIds &&
+        request.resource.data.criadorUid == request.auth.uid &&
+        request.resource.data.memberIds.size() <= 2;
+        
+      allow update: if isAuthenticated() && (
+        request.auth.uid in resource.data.memberIds ||
+        (request.auth.uid in request.resource.data.memberIds && request.resource.data.memberIds.size() <= 2)
+      );
+      
+      allow delete: if isAuthenticated() && resource.data.criadorUid == request.auth.uid;
+
+      // Subcoleção Contas
+      match /contas/{contaId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update: if isPlanMember(planoId) &&
+          isNonNegativeInteger(request.resource.data.saldoInicialCentavos);
+        allow delete: if isPlanMember(planoId);
+      }
+
+      // Subcoleção Cartões e suas subcoleções (Parte 4)
+      match /cartoes/{cartaoId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update: if isPlanMember(planoId) &&
+          isPositiveInteger(request.resource.data.limiteCentavos) &&
+          request.resource.data.diaFechamento >= 1 &&
+          request.resource.data.diaFechamento <= 31 &&
+          request.resource.data.diaVencimento >= 1 &&
+          request.resource.data.diaVencimento <= 31;
+        allow delete: if isPlanMember(planoId);
+
+        // Subcoleção Faturas
+        match /faturas/{faturaId} {
+          allow read: if isPlanMember(planoId);
+          allow create, update: if isPlanMember(planoId) &&
+            isNonNegativeInteger(request.resource.data.valorTotalCentavos) &&
+            isNonNegativeInteger(request.resource.data.valorPagoCentavos);
+          allow delete: if isPlanMember(planoId);
+        }
+
+        // Subcoleção Compras
+        match /compras/{compraId} {
+          allow read: if isPlanMember(planoId);
+          allow create, update: if isPlanMember(planoId) &&
+            isPositiveInteger(request.resource.data.valorTotalCentavos) &&
+            request.resource.data.numeroParcelas >= 1;
+          allow delete: if isPlanMember(planoId);
+
+          // Subcoleção Parcelas
+          match /parcelas/{parcelaId} {
+            allow read: if isPlanMember(planoId);
+            allow create, update: if isPlanMember(planoId) &&
+              isPositiveInteger(request.resource.data.valorCentavos) &&
+              request.resource.data.numeroParcela >= 1;
+            allow delete: if isPlanMember(planoId);
+          }
+        }
+      }
+
+      // Subcoleção Categorias
+      match /categorias/{categoriaId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update, delete: if isPlanMember(planoId);
+      }
+
+      // Subcoleção Lançamentos
+      match /lancamentos/{lancamentoId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update: if isPlanMember(planoId) &&
+          isValidLancamento(planoId, request.resource.data);
+        allow delete: if isPlanMember(planoId);
+      }
+
+      // Subcoleção Recorrências
+      match /recorrencias/{recorrenciaId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update: if isPlanMember(planoId) &&
+          isPositiveInteger(request.resource.data.valorCentavos);
+        allow delete: if isPlanMember(planoId);
+
+        // Subcoleção Execuções da Recorrência
+        match /execucoes/{execucaoId} {
+          allow read: if isPlanMember(planoId);
+          allow create, update: if isPlanMember(planoId);
+          allow delete: if isPlanMember(planoId);
+        }
+      }
+
+      // Subcoleção Orçamentos
+      match /orcamentos/{orcamentoId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update: if isPlanMember(planoId) &&
+          ((isPositiveInteger(request.resource.data.valorLimiteCentavos)) ||
+           (isPositiveInteger(request.resource.data.limiteCentavos)));
+        allow delete: if isPlanMember(planoId);
+      }
+
+      // Subcoleção Metas
+      match /metas/{metaId} {
+        allow read: if isPlanMember(planoId);
+        allow create, update: if isPlanMember(planoId) &&
+          isNonNegativeInteger(request.resource.data.valorAtualCentavos) &&
+          ((isPositiveInteger(request.resource.data.valorObjetivoCentavos)) ||
+           (isPositiveInteger(request.resource.data.valorAlvoCentavos)));
+        allow delete: if isPlanMember(planoId);
+
+        // Subcoleção Movimentações de Metas (Aportes)
+        match /movimentacoes/{movimentacaoId} {
+          allow read: if isPlanMember(planoId);
+          allow create, update: if isPlanMember(planoId) &&
+            isPositiveInteger(request.resource.data.valorCentavos);
+          allow delete: if isPlanMember(planoId);
+        }
+      }
+    }
+
+    // Coleção Convites
+    match /convites/{conviteId} {
+      allow create: if isAuthenticated() &&
+        request.resource.data.criadorUid == request.auth.uid;
+        
+      allow read: if isAuthenticated() && (
+        resource.data.criadorUid == request.auth.uid ||
+        resource.data.email == request.auth.token.email
+      );
+      
+      allow update: if isAuthenticated() && (
+        resource.data.email == request.auth.token.email ||
+        resource.data.criadorUid == request.auth.uid
+      );
+      
+      allow delete: if isAuthenticated() && resource.data.criadorUid == request.auth.uid;
+    }
+  }
+}

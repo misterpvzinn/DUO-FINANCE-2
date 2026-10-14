@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="roseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <!-- Duo rings for couple finance -->
+  <g transform="translate(256, 256)">
+    <!-- Ring 1 (Left - Partner 1: Emerald) -->
+    <circle cx="-56" cy="0" r="88" fill="none" stroke="url(#emeraldGrad)" stroke-width="28" opacity="0.9" />
+    <!-- Ring 2 (Right - Partner 2: Rose) -->
+    <circle cx="56" cy="0" r="88" fill="none" stroke="url(#roseGrad)" stroke-width="28" opacity="0.9" />
+    <!-- Center Heart Icon -->
+    <path d="M 0 -18 C -14 -40, -42 -30, -32 -6 C -24 14, 0 32, 0 32 C 0 32, 24 14, 32 -6 C 42 -30, 14 -40, 0 -18 Z" fill="#ffffff" />
+  </g>
+</svg>
